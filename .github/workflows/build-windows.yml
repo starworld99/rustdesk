@@ -1,42 +1,61 @@
-name: Build Windows Release
+name: Build Windows Executable (Stable)
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  build-windows:
-    runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      # 修复 libsodium 跨平台构建的关键环境变量
+      CC_x86_64_pc_windows_gnu: x86_64-w64-mingw32-gcc
+      CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
+      SODIUM_STATIC: "1"
+      SODIUM_HOST: x86_64-w64-mingw32
 
     steps:
-      - name: Checkout repository
+      - name: Checkout source code
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install dependencies
+      - name: Install cross-compile toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y mingw-w64 automake autoconf libtool pkg-config
+          sudo apt-get install -y \
+            mingw-w64 \
+            automake autoconf libtool pkg-config make cmake \
+            curl unzip git build-essential
 
-      - name: Install Rust and target
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-gnu
-
-      - name: Set up cross environment
+      - name: Verify toolchain
         run: |
-          echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
-          echo "CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++" >> $GITHUB_ENV
-          echo "AR_x86_64_pc_windows_gnu=x86_64-w64-mingw32-ar" >> $GITHUB_ENV
-          echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
+          x86_64-w64-mingw32-gcc --version
+          pkg-config --version
 
-      - name: Build Windows release
-        run: cargo build --release --target x86_64-pc-windows-gnu
+      # 修复 libsodium-sys 跨编译时的错误 host 名称
+      - name: Patch libsodium-sys host triplet
+        run: |
+          find ~/.cargo/registry/src/ -type f -path "*libsodium-sys-0.2.7/build.rs" -exec sed -i 's/x86_64-pc-windows-gnu/x86_64-w64-mingw32/g' {} \; || true
+          find . -type f -name build.rs -exec sed -i 's/x86_64-pc-windows-gnu/x86_64-w64-mingw32/g' {} \; || true
 
-      - name: Upload build artifact
+      # 确保 cargo 能用 bundled 模式（避免找不到 libsodium.pc）
+      - name: Force bundled libsodium
+        run: |
+          echo '[patch.crates-io]' >> Cargo.toml
+          echo 'libsodium-sys = { version = "0.2.7", features = ["bundled"] }' >> Cargo.toml
+
+      - name: Add Windows target
+        run: rustup target add x86_64-pc-windows-gnu
+
+      - name: Build Windows release binary
+        run: |
+          cargo build --release --target x86_64-pc-windows-gnu
+        env:
+          RUST_BACKTRACE: 1
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-windows
-          path: target/x86_64-pc-windows-gnu/release/
+          name: rustdesk-windows-build
+          path: target/x86_64-pc-windows-gnu/release/*.exe
