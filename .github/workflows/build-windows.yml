@@ -1,28 +1,33 @@
-name: Build RustDesk Windows Release
+name: Build RustDesk Windows
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
 
 jobs:
   build-windows:
     runs-on: ubuntu-latest
-
     env:
-      CARGO_TERM_COLOR: always
+      # 自定义服务器配置
+      RENDEZVOUS_SERVER: "xyz.bsp.cn"
+      RELAY_SERVER: "xyz.bsp.cn:21117"
+      RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="
+      API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          profile: minimal
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 pkg-config build-essential curl git
 
-      - name: Add Windows target
-        run: rustup target add x86_64-pc-windows-gnu
+      - name: Install Rust and target
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          source $HOME/.cargo/env
+          rustup target add x86_64-pc-windows-gnu
 
-      - name: Install mingw-w64 cross compiler
-        run: sudo apt-get
+      - name: Set cross-compile environment
+        run: |
+          echo "CC_x_
