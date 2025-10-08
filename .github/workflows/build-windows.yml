@@ -1,62 +1,64 @@
-name: Build Windows Release
+name: Build RustDesk for Windows
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build_windows:
+    runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout repository (with submodules)
+      # 1️⃣ 拉取完整代码（包含子模块）
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: x86_64-pc-windows-gnu
-          override: true
-
-      - name: Install cross compile tools
+      # 2️⃣ 安装必要依赖
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y mingw-w64 autoconf automake libtool pkg-config build-essential
+          sudo apt-get install -y \
+            mingw-w64 \
+            curl \
+            pkg-config \
+            build-essential \
+            autoconf \
+            libtool \
+            automake \
+            make \
+            cmake \
+            unzip
 
-      - name: Disable pkg-config and use bundled libsodium
+      # 3️⃣ 设置环境变量（Bundled 模式编译 libsodium）
+      - name: Set environment variables
         run: |
-          echo "SODIUM_BUILD_STATIC=1" >> $GITHUB_ENV
           echo "SODIUM_USE_PKG_CONFIG=0" >> $GITHUB_ENV
-          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=" >> $GITHUB_ENV
-          echo "PKG_CONFIG_SYSROOT_DIR=" >> $GITHUB_ENV
-          echo "CARGO_FEATURE_BUNDLED=1" >> $GITHUB_ENV
-          echo "CFLAGS=-O3 -ffunction-sections -fdata-sections -m64 -Wall -Wextra" >> $GITHUB_ENV
+          echo "LIBSODIUM_SYS_USE_PKG_CONFIG=0" >> $GITHUB_ENV
+          echo "LIBSODIUM_BUNDLED=1" >> $GITHUB_ENV
+          echo "PKG_CONFIG_ALLOW_SYSTEM_LIBS=1" >> $GITHUB_ENV
+          echo "PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1" >> $GITHUB_ENV
 
-      - name: Configure environment for cross compile
-        run: |
-          echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
-          echo "CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++" >> $GITHUB_ENV
-
-      - name: Set RustDesk server environment
+      # 4️⃣ 编译 RustDesk
+      - name: Build RustDesk (Windows x86_64)
         env:
+          SODIUM_USE_PKG_CONFIG: "0"
+          LIBSODIUM_SYS_USE_PKG_CONFIG: "0"
+          LIBSODIUM_BUNDLED: "1"
           RENDEZVOUS_SERVER: "xyz.bsp.cn"
           RELAY_SERVER: "xyz.bsp.cn:21117"
           RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="
           API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
         run: |
-          echo "RENDEZVOUS_SERVER=${RENDEZVOUS_SERVER}" >> $GITHUB_ENV
-          echo "RELAY_SERVER=${RELAY_SERVER}" >> $GITHUB_ENV
-          echo "RS_PUB_KEY=${RS_PUB_KEY}" >> $GITHUB_ENV
-          echo "API_SERVER=${API_SERVER}" >> $GITHUB_ENV
-
-      - name: Build Windows binary
-        run: |
+          rustup target add x86_64-pc-windows-gnu
           cargo build --release --target x86_64-pc-windows-gnu
 
-      - name: Upload build artifact
+      # 5️⃣ 保存编译结果
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: rustdesk-windows
