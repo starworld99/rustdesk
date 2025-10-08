@@ -8,38 +8,39 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      RENDEZVOUS_SERVER: "xyz.bsp.cn"
+      ID_SERVER: "xyz.bsp.cn"
       RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="
       API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
-      # 如果想指定 relay，客户端会自动处理，一般不需要额外变量
+      RELAY_SERVER: "xyz.bsp.cn:21117"
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository with submodules
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Install dependencies
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-pc-windows-gnu
+          override: true
+
+      - name: Install mingw-w64 for cross compile
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
+      - name: Set environment variables for cargo
         run: |
-          sudo apt-get update
-          sudo apt-get install -y mingw-w64 zip autoconf automake libtool pkg-config build-essential curl git
+          echo "ID_SERVER=${ID_SERVER}" >> $GITHUB_ENV
+          echo "RS_PUB_KEY=${RS_PUB_KEY}" >> $GITHUB_ENV
+          echo "API_SERVER=${API_SERVER}" >> $GITHUB_ENV
+          echo "RELAY_SERVER=${RELAY_SERVER}" >> $GITHUB_ENV
 
-      - name: Add Windows target
-        run: rustup target add x86_64-pc-windows-gnu
-
-      - name: Set linker for Windows target
-        run: echo "RUSTC_LINKER=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
-
-      - name: Build Windows client
-        run: |
-          cargo build --release --target x86_64-pc-windows-gnu
-
-      - name: Package Windows client
-        run: |
-          mkdir -p release
-          cp target/x86_64-pc-windows-gnu/release/rustdesk.exe release/
-          zip -r rustdesk-windows.zip release
+      - name: Build Windows release
+        run: cargo build --release --target x86_64-pc-windows-gnu
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: rustdesk-windows
-          path: rustdesk-windows.zip
+          path: target/x86_64-pc-windows-gnu/release/
