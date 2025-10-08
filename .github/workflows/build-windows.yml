@@ -1,48 +1,60 @@
-name: Build RustDesk Windows
+name: Build Windows Release
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
+  build:
     runs-on: ubuntu-latest
-    env:
-      RENDEZVOUS_SERVER: "xyz.bsp.cn"
-      RELAY_SERVER: "xyz.bsp.cn:21117"
-      RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="
-      API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (with submodules)
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install Rust
+      - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: x86_64-pc-windows-gnu
           override: true
 
       - name: Install cross compile tools
         run: |
           sudo apt-get update
           sudo apt-get install -y mingw-w64 autoconf automake libtool pkg-config build-essential
-          echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
 
-      # 🔧 关键修复：强制启用 bundled 版本的 libsodium
-      - name: Patch Cargo.toml for bundled libsodium
+      - name: Force bundled libsodium (disable autotools)
         run: |
-          sed -i 's/^libsodium-sys = .*/libsodium-sys = { version = "0.2.7", features = ["bundled"] }/' Cargo.toml
+          echo "SODIUM_BUILD_STATIC=1" >> $GITHUB_ENV
+          echo "SODIUM_USE_PKG_CONFIG=0" >> $GITHUB_ENV
+          echo "CARGO_FEATURE_BUNDLED=1" >> $GITHUB_ENV
+          echo "CFLAGS=-O3 -ffunction-sections -fdata-sections -m64 -Wall -Wextra" >> $GITHUB_ENV
 
-      - name: Add Windows target
-        run: rustup target add x86_64-pc-windows-gnu
+      - name: Configure environment for cross compile
+        run: |
+          echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
+          echo "CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++" >> $GITHUB_ENV
 
-      - name: Build release (Windows target)
-        run: cargo build --release --target x86_64-pc-windows-gnu
+      - name: Set RustDesk server environment
+        env:
+          RENDEZVOUS_SERVER: "xyz.bsp.cn"
+          RELAY_SERVER: "xyz.bsp.cn:21117"
+          RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="
+          API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
+        run: |
+          echo "RENDEZVOUS_SERVER=${RENDEZVOUS_SERVER}" >> $GITHUB_ENV
+          echo "RELAY_SERVER=${RELAY_SERVER}" >> $GITHUB_ENV
+          echo "RS_PUB_KEY=${RS_PUB_KEY}" >> $GITHUB_ENV
+          echo "API_SERVER=${API_SERVER}" >> $GITHUB_ENV
 
-      - name: Upload artifact
+      - name: Build Windows binary
+        run: |
+          cargo build --release --target x86_64-pc-windows-gnu
+
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: rustdesk-windows
-          path: target/x86_64-pc-windows-gnu/release/
+          path: target/x86_64-pc-windows-gnu/release/rustdesk.exe
