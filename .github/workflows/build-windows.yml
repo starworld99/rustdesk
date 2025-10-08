@@ -31,4 +31,22 @@ jobs:
           profile: minimal
           override: true
 
-      - name:
+      - name: Set cross-compile environment
+        run: |
+          echo CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc >> $GITHUB_ENV
+          echo CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc >> $GITHUB_ENV
+
+      - name: Build RustDesk Windows
+        run: |
+          cargo build --release --target x86_64-pc-windows-gnu
+
+      - name: Package executable
+        run: |
+          mkdir -p release
+          cp target/x86_64-pc-windows-gnu/release/rustdesk.exe release/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: rustdesk-windows
+          path: release/rustdesk.exe
