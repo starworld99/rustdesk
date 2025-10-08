@@ -12,13 +12,11 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      # 1️⃣ 拉取完整代码（包含子模块）
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      # 2️⃣ 安装依赖
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -33,7 +31,6 @@ jobs:
             cmake \
             unzip
 
-      # 3️⃣ 设置交叉编译工具链环境变量
       - name: Set cross compile environment
         run: |
           echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
@@ -46,13 +43,12 @@ jobs:
           echo "LIBSODIUM_SYS_USE_PKG_CONFIG=0" >> $GITHUB_ENV
           echo "LIBSODIUM_BUNDLED=1" >> $GITHUB_ENV
 
-      # 4️⃣ 预先更新 Cargo.lock，强制 libsodium 使用正确版本
       - name: Update Cargo.toml for libsodium
         run: |
           cargo update -p libsodium-sys --precise 0.2.7
 
-      # 5️⃣ 构建
-      - name: Build RustDesk (Windows)
+      # ✅ 关键修改点
+      - name: Build RustDesk (Windows, using bundled libsodium)
         env:
           CC_x86_64_pc_windows_gnu: x86_64-w64-mingw32-gcc
           AR_x86_64_pc_windows_gnu: x86_64-w64-mingw32-ar
@@ -69,9 +65,8 @@ jobs:
           API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
         run: |
           rustup target add x86_64-pc-windows-gnu
-          cargo build --release --target x86_64-pc-windows-gnu
+          cargo build --release --target x86_64-pc-windows-gnu --features "bundled"
 
-      # 6️⃣ 导出结果
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
