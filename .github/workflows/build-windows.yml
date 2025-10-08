@@ -1,20 +1,13 @@
-name: Build RustDesk Windows
+name: Build Windows Release
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build-windows:
-    runs-on: ubuntu-latest
-
-    env:
-      RENDEZVOUS_SERVER: "xyz.bsp.cn"
-      RELAY_SERVER: "xyz.bsp.cn:21117"
-      RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="
-      API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repository
@@ -25,29 +18,25 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            mingw-w64 \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            build-essential \
-            cmake \
-            curl
+          sudo apt-get install -y mingw-w64 automake autoconf libtool pkg-config
 
-      - name: Add Rust Windows target
-        run: rustup target add x86_64-pc-windows-gnu
+      - name: Install Rust and target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
 
-      - name: Set environment for cross compile
+      - name: Set up cross environment
         run: |
           echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
+          echo "CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++" >> $GITHUB_ENV
+          echo "AR_x86_64_pc_windows_gnu=x86_64-w64-mingw32-ar" >> $GITHUB_ENV
           echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
-          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
-          echo "SODIUM_STATIC=1" >> $GITHUB_ENV
-          echo "SODIUM_USE_PKG_CONFIG=0" >> $GITHUB_ENV
-          echo "LIBSODIUM_DISABLE_AUTOTOOLS=1" >> $GITHUB_ENV
-          echo "RUSTFLAGS=-C target-feature=+crt-static" >> $GITHUB_ENV
 
-      - name: Build (force bundled libsodium)
-        run: |
-          cargo build --target x86_64-pc-windows-gnu --release --features bundled
+      - name: Build Windows release
+        run: cargo build --release --target x86_64-pc-windows-gnu
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustdesk-windows
+          path: target/x86_64-pc-windows-gnu/release/
