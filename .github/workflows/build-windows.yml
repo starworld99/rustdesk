@@ -1,51 +1,53 @@
-name: Build RustDesk Windows Release
+name: Build RustDesk Windows
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+  pull_request:
 
 jobs:
-  build_windows:
+  build-windows:
     runs-on: ubuntu-latest
 
     env:
-      # 自定义服务器配置
       RENDEZVOUS_SERVER: "xyz.bsp.cn"
       RELAY_SERVER: "xyz.bsp.cn:21117"
       RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="
       API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
-      # 强制 libsodium 使用 bundled 避免 configure 错误
-      LIBSODIUM_SYS_USE_PKG_CONFIG: "0"
-      LIBSODIUM_BUNDLED: "1"
 
     steps:
-      # 1. Checkout repository + submodules
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      # 2. Install cross compile tools
-      - name: Install cross compile tools
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y mingw-w64 autoconf automake libtool pkg-config build-essential
-          echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
+          sudo apt-get install -y \
+            mingw-w64 \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            build-essential \
+            cmake \
+            curl
 
-      # 3. Install Rust Windows target
-      - name: Add Windows target
+      - name: Add Rust Windows target
         run: rustup target add x86_64-pc-windows-gnu
 
-      # 4. Build RustDesk for Windows (release)
-      - name: Build RustDesk Windows Release
+      - name: Set environment for cross compile
         run: |
-          cargo build --release --target x86_64-pc-windows-gnu
+          echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
+          echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
+          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
+          echo "SODIUM_STATIC=1" >> $GITHUB_ENV
+          echo "SODIUM_USE_PKG_CONFIG=0" >> $GITHUB_ENV
+          echo "LIBSODIUM_DISABLE_AUTOTOOLS=1" >> $GITHUB_ENV
+          echo "RUSTFLAGS=-C target-feature=+crt-static" >> $GITHUB_ENV
 
-      # 5. Upload the build artifacts
-      - name: Upload Windows Release
-        uses: actions/upload-artifact@v4
-        with:
-          name: rustdesk-windows-release
-          path: target/x86_64-pc-windows-gnu/release/
+      - name: Build (force bundled libsodium)
+        run: |
+          cargo build --target x86_64-pc-windows-gnu --release --features bundled
