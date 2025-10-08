@@ -25,10 +25,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y mingw-w64 autoconf automake libtool pkg-config build-essential
 
-      - name: Force bundled libsodium (disable autotools)
+      - name: Disable pkg-config and use bundled libsodium
         run: |
           echo "SODIUM_BUILD_STATIC=1" >> $GITHUB_ENV
           echo "SODIUM_USE_PKG_CONFIG=0" >> $GITHUB_ENV
+          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=" >> $GITHUB_ENV
+          echo "PKG_CONFIG_SYSROOT_DIR=" >> $GITHUB_ENV
           echo "CARGO_FEATURE_BUNDLED=1" >> $GITHUB_ENV
           echo "CFLAGS=-O3 -ffunction-sections -fdata-sections -m64 -Wall -Wextra" >> $GITHUB_ENV
 
