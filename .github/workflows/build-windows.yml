@@ -1,58 +1,57 @@
 name: Build RustDesk Windows
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # 手动触发
 
 jobs:
   build-windows:
-    name: Build Windows Release
     runs-on: ubuntu-latest
 
     env:
-      # 你的自定义服务器信息
       RENDEZVOUS_SERVER: "xyz.bsp.cn"
       RELAY_SERVER: "xyz.bsp.cn:21117"
       RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="
       API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
 
     steps:
-      # 1. Checkout 仓库，包括子模块
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      # 2. 安装交叉编译依赖
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mingw-w64 build-essential pkg-config autoconf automake libtool curl unzip
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          mingw-w64 \
+          build-essential \
+          pkg-config \
+          autoconf \
+          automake \
+          libtool \
+          curl \
+          unzip \
+          git \
+          cmake
 
-      # 3. 安装 Rust 工具链
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: x86_64-pc-windows-gnu
+        override: true
 
-      # 4. 添加 Windows target
-      - name: Add Windows target
-        run: rustup target add x86_64-pc-windows-gnu
+    - name: Set cross compile environment
+      run: |
+        echo 'CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc' >> $GITHUB_ENV
+        echo 'CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc' >> $GITHUB_ENV
 
-      # 5. 设置 cross-compile 编译器环境变量
-      - name: Set cross compile environment
-        run: |
-          echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
-          echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
+    - name: Add Windows target
+      run: rustup target add x86_64-pc-windows-gnu
 
-      # 6. 编译 Windows release
-      - name: Build Windows release
-        run: cargo build --release --target x86_64-pc-windows-gnu
+    - name: Build release for Windows
+      run: cargo build --release --target x86_64-pc-windows-gnu
 
-      # 7. 上传编译好的 exe
-      - name: Upload Windows executable
-        uses: actions/upload-artifact@v4
-        with:
-          name: rustdesk-win
-          path: target/x86_64-pc-windows-gnu/release/*.exe
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: rustdesk-windows
+        path: target/x86_64-pc-windows-gnu/release/rustdesk.exe
