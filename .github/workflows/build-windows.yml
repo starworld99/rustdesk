@@ -5,48 +5,54 @@ on:
 
 jobs:
   build-windows:
+    name: Build Windows Release
     runs-on: ubuntu-latest
 
     env:
-      RENDEZVOUS_SERVER: xyz.bsp.cn
-      RS_PUB_KEY: B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us=
-      API_SERVER: https://xyz.bsp.cn/rustdesk-hbbs
+      # 你的自定义服务器信息
+      RENDEZVOUS_SERVER: "xyz.bsp.cn"
+      RELAY_SERVER: "xyz.bsp.cn:21117"
+      RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="
+      API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
 
     steps:
-      - name: Checkout code
+      # 1. Checkout 仓库，包括子模块
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      # 2. 安装交叉编译依赖
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y mingw-w64 pkg-config build-essential cmake curl git
+          sudo apt-get install -y mingw-w64 build-essential pkg-config autoconf automake libtool curl unzip
 
-      - name: Install Rust
+      # 3. 安装 Rust 工具链
+      - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: x86_64-pc-windows-gnu
           profile: minimal
           override: true
 
-      - name: Set cross-compile environment
-        run: |
-          echo CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc >> $GITHUB_ENV
-          echo CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc >> $GITHUB_ENV
+      # 4. 添加 Windows target
+      - name: Add Windows target
+        run: rustup target add x86_64-pc-windows-gnu
 
-      - name: Build RustDesk Windows
+      # 5. 设置 cross-compile 编译器环境变量
+      - name: Set cross compile environment
         run: |
-          cargo build --release --target x86_64-pc-windows-gnu
+          echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
+          echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
 
-      - name: Package executable
-        run: |
-          mkdir -p release
-          cp target/x86_64-pc-windows-gnu/release/rustdesk.exe release/
+      # 6. 编译 Windows release
+      - name: Build Windows release
+        run: cargo build --release --target x86_64-pc-windows-gnu
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
+      # 7. 上传编译好的 exe
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-windows
-          path: release/rustdesk.exe
+          name: rustdesk-win
+          path: target/x86_64-pc-windows-gnu/release/*.exe
