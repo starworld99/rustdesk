@@ -1,49 +1,45 @@
-name: Build Windows RustDesk Client
+name: Build Windows Client
 
 on:
-  workflow_dispatch:
-
-env:
-  RENDEZVOUS_SERVER: xyz.bsp.cn
-  RELAY_SERVER: xyz.bsp.cn:21117
-  RS_PUB_KEY: B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us=
-  API_SERVER: https://xyz.bsp.cn/rustdesk-hbbs
+  workflow_dispatch:  # 手动触发
 
 jobs:
   build-windows:
     runs-on: ubuntu-latest
 
+    env:
+      RENDEZVOUS_SERVER: "xyz.bsp.cn"
+      RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="
+      API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
+      # 如果想指定 relay，客户端会自动处理，一般不需要额外变量
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive   # 自动拉取子模块
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Install Rust target
-      run: rustup target add x86_64-pc-windows-gnu
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 zip autoconf automake libtool pkg-config build-essential curl git
 
-    - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y mingw-w64 zip
+      - name: Add Windows target
+        run: rustup target add x86_64-pc-windows-gnu
 
-    - name: Set custom server environment
-      run: |
-        echo "RENDEZVOUS_SERVER=${{ env.RENDEZVOUS_SERVER }}" >> $GITHUB_ENV
-        echo "RELAY_SERVER=${{ env.RELAY_SERVER }}" >> $GITHUB_ENV
-        echo "RS_PUB_KEY=${{ env.RS_PUB_KEY }}" >> $GITHUB_ENV
-        echo "API_SERVER=${{ env.API_SERVER }}" >> $GITHUB_ENV
+      - name: Set linker for Windows target
+        run: echo "RUSTC_LINKER=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
 
-    - name: Build Windows client
-      run: |
-        cargo build --release --target x86_64-pc-windows-gnu
+      - name: Build Windows client
+        run: |
+          cargo build --release --target x86_64-pc-windows-gnu
 
-    - name: Package executable
-      run: |
-        mkdir -p release
-        cp target/x86_64-pc-windows-gnu/release/rustdesk.exe release/
-        cd release && zip rustdesk-windows.zip rustdesk.exe
+      - name: Package Windows client
+        run: |
+          mkdir -p release
+          cp target/x86_64-pc-windows-gnu/release/rustdesk.exe release/
+          zip -r rustdesk-windows.zip release
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: rustdesk-windows
-        path: release/rustdesk-windows.zip
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustdesk-windows
+          path: rustdesk-windows.zip
