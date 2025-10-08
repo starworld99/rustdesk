@@ -1,21 +1,14 @@
-name: Build Windows Executable (Final Stable)
+name: Build RustDesk Windows (x86_64)
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    env:
-      # 修复 libsodium 构建问题的关键参数
-      CC_x86_64_pc_windows_gnu: x86_64-w64-mingw32-gcc
-      CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
-      SODIUM_STATIC: "1"
-      SODIUM_USE_PKG_CONFIG: "0"
-      SODIUM_BUILD_STATIC: "1"
-      SODIUM_LIB_DIR: ""
-      RUST_BACKTRACE: 1
+  build-windows:
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repository
@@ -23,38 +16,30 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install cross toolchain
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-pc-windows-gnu
+          profile: minimal
+          override: true
+
+      - name: Set up environment
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            mingw-w64 \
-            automake autoconf libtool pkg-config make cmake \
-            curl unzip git build-essential
-
-      - name: Verify compiler
-        run: |
-          x86_64-w64-mingw32-gcc --version
-          pkg-config --version
-
-      - name: Fix invalid triplet in libsodium-sys
-        run: |
-          find ~/.cargo/registry/src/ -type f -path "*libsodium-sys-0.2.7/build.rs" -exec sed -i 's/x86_64-pc-windows-gnu/x86_64-w64-mingw32/g' {} \; || true
-          find . -type f -name build.rs -exec sed -i 's/x86_64-pc-windows-gnu/x86_64-w64-mingw32/g' {} \; || true
-
-      - name: Add Windows target
-        run: rustup target add x86_64-pc-windows-gnu
-
-      - name: Build Windows Release Binary
-        run: cargo build --release --target x86_64-pc-windows-gnu
+          echo "Setting up environment..."
+          rustup target add x86_64-pc-windows-gnu
         env:
-          # 环境变量方式强制使用 bundled 模式
-          SODIUM_STATIC: "1"
-          SODIUM_USE_PKG_CONFIG: "0"
-          SODIUM_BUILD_STATIC: "1"
-          RUST_BACKTRACE: 1
+          SODIUM_SHARED: "1"
 
-      - name: Upload Artifact
+      - name: Build
+        run: |
+          cargo build --release --target x86_64-pc-windows-gnu
+        env:
+          SODIUM_SHARED: "1"
+          RUST_BACKTRACE: "1"
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-windows-exe
-          path: target/x86_64-pc-windows-gnu/release/*.exe
+          name: rustdesk-windows-x86_64
+          path: target/x86_64-pc-windows-gnu/release/
