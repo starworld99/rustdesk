@@ -18,7 +18,7 @@ jobs:
         with:
           submodules: recursive
 
-      # 2️⃣ 安装必要依赖
+      # 2️⃣ 安装依赖
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -26,26 +26,40 @@ jobs:
             mingw-w64 \
             curl \
             pkg-config \
-            build-essential \
             autoconf \
-            libtool \
             automake \
-            make \
+            libtool \
+            build-essential \
             cmake \
             unzip
 
-      # 3️⃣ 设置环境变量（Bundled 模式编译 libsodium）
-      - name: Set environment variables
+      # 3️⃣ 设置交叉编译工具链环境变量
+      - name: Set cross compile environment
         run: |
+          echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
+          echo "AR_x86_64_pc_windows_gnu=x86_64-w64-mingw32-ar" >> $GITHUB_ENV
+          echo "CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++" >> $GITHUB_ENV
+          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=" >> $GITHUB_ENV
+          echo "PKG_CONFIG_SYSROOT_DIR=" >> $GITHUB_ENV
           echo "SODIUM_USE_PKG_CONFIG=0" >> $GITHUB_ENV
           echo "LIBSODIUM_SYS_USE_PKG_CONFIG=0" >> $GITHUB_ENV
           echo "LIBSODIUM_BUNDLED=1" >> $GITHUB_ENV
-          echo "PKG_CONFIG_ALLOW_SYSTEM_LIBS=1" >> $GITHUB_ENV
-          echo "PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1" >> $GITHUB_ENV
 
-      # 4️⃣ 编译 RustDesk
-      - name: Build RustDesk (Windows x86_64)
+      # 4️⃣ 预先更新 Cargo.lock，强制 libsodium 使用正确版本
+      - name: Update Cargo.toml for libsodium
+        run: |
+          cargo update -p libsodium-sys --precise 0.2.7
+
+      # 5️⃣ 构建
+      - name: Build RustDesk (Windows)
         env:
+          CC_x86_64_pc_windows_gnu: x86_64-w64-mingw32-gcc
+          AR_x86_64_pc_windows_gnu: x86_64-w64-mingw32-ar
+          CXX_x86_64_pc_windows_gnu: x86_64-w64-mingw32-g++
+          PKG_CONFIG_ALLOW_CROSS: "1"
+          PKG_CONFIG_PATH: ""
+          PKG_CONFIG_SYSROOT_DIR: ""
           SODIUM_USE_PKG_CONFIG: "0"
           LIBSODIUM_SYS_USE_PKG_CONFIG: "0"
           LIBSODIUM_BUNDLED: "1"
@@ -57,7 +71,7 @@ jobs:
           rustup target add x86_64-pc-windows-gnu
           cargo build --release --target x86_64-pc-windows-gnu
 
-      # 5️⃣ 保存编译结果
+      # 6️⃣ 导出结果
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
