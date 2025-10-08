@@ -1,45 +1,77 @@
-name: Build RustDesk Windows (x86_64)
+name: Build RustDesk Windows Release
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-
+  build_windows:
+    runs-on: ubuntu-latest
     steps:
+      # 1. Checkout repo with submodules
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+      # 2. Install Rust and target
+      - name: Setup Rust
+        uses: actions-rust/setup-rust@v1
         with:
-          toolchain: stable
-          target: x86_64-pc-windows-gnu
-          profile: minimal
-          override: true
+          rust-version: stable
 
-      - name: Set up environment
+      - name: Add Windows target
+        run: rustup target add x86_64-pc-windows-gnu
+
+      # 3. Install cross compile tools
+      - name: Install cross-compile tools
         run: |
-          echo "Setting up environment..."
-          rustup target add x86_64-pc-windows-gnu
-        env:
-          SODIUM_SHARED: "1"
+          sudo apt-get update
+          sudo apt-get install -y \
+            mingw-w64 \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            build-essential \
+            cmake
 
-      - name: Build
+      # 4. Set environment variables for cross-compiling and bundled libsodium
+      - name: Setup environment
         run: |
-          cargo build --release --target x86_64-pc-windows-gnu
-        env:
-          SODIUM_SHARED: "1"
-          RUST_BACKTRACE: "1"
+          echo "CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
+          echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
+          echo "SODIUM_USE_PKG_CONFIG=0" >> $GITHUB_ENV
+          echo "SODIUM_SHARED=0" >> $GITHUB_ENV
+          echo "PKG_CONFIG_ALLOW_SYSTEM_LIBS=1" >> $GITHUB_ENV
+          echo "PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1" >> $GITHUB_ENV
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      # 5. Cache cargo dependencies
+      - name: Cache Cargo registry
+        uses: actions/cache@v3
         with:
-          name: rustdesk-windows-x86_64
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # 6. Build Rust project using bundled libsodium
+      - name: Build release
+        run: |
+          cargo build --release --target x86_64-pc-windows-gnu --features "libsodium-bundled"
+        env:
+          RENDEZVOUS_SERVER: "xyz.bsp.cn"
+          RELAY_SERVER: "xyz.bsp.cn:21117"
+          RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="
+          API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"
+
+      # 7. Upload artifact
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: rustdesk-windows
           path: target/x86_64-pc-windows-gnu/release/
