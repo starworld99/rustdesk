@@ -1,0 +1,43 @@
+name: Build RustDesk Windows
+
+on:
+  workflow_dispatch:   # 手动触发
+  push:
+    branches:
+      - main          # 或你的默认分支
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-latest
+    env:
+      # 你的自定义服务器信息
+      RENDEZVOUS_SERVER: "xyz.bsp.cn"             # ID服务器域名/IP
+      RS_PUB_KEY: "B70FbvLRUyE1K4QSYizzi8jypvvfEERdVbBU61EE8Us="   # 公钥
+      API_SERVER: "https://xyz.bsp.cn/rustdesk-hbbs"  # WebSocket API，如果不需要可以留空
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y pkg-config libssl-dev
+
+      - name: Build Windows x64 Release
+        run: |
+          rustup target add x86_64-pc-windows-gnu
+          cargo build --release --target x86_64-pc-windows-gnu
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: rustdesk-windows
+          path: target/x86_64-pc-windows-gnu/release/*.exe
