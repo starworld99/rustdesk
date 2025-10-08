@@ -1,45 +1,28 @@
-name: Build Windows RustDesk
+name: Build RustDesk Windows Release
 
 on:
   workflow_dispatch:  # 手动触发
-  push:
-    branches:
-      - master
 
 jobs:
   build-windows:
     runs-on: ubuntu-latest
 
+    env:
+      CARGO_TERM_COLOR: always
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            mingw-w64 \
-            pkg-config \
-            autoconf \
-            automake \
-            libtool \
-            build-essential \
-            cmake \
-            curl \
-            git \
-            unzip \
-            autoconf-archive
-
-      - name: Install Rust and target
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
           toolchain: stable
-          target: x86_64-pc-windows-gnu
           override: true
+          profile: minimal
 
-      - name: Set cross compile environment
-        run: |
-          echo "CC=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
-          echo "CXX=x86_64-w64-mingw32-g++" >> $GITHUB_ENV
-          echo "AR=x86
+      - name: Add Windows target
+        run: rustup target add x86_64-pc-windows-gnu
+
+      - name: Install mingw-w64 cross compiler
+        run: sudo apt-get
