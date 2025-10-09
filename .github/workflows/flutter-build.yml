@@ -87,10 +87,17 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - name: Checkout source code
+      - name: Checkout source code (no submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone latest hbb_common from your fork
+        run: |
+          rm -rf hbb_common
+          git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Restore bridge files
         uses: actions/download-artifact@master
@@ -308,10 +315,17 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - name: Checkout source code
+      - name: Checkout source code (no submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone latest hbb_common from your fork
+        run: |
+          rm -rf hbb_common
+          git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Install LLVM and Clang
         uses: rustdesk-org/install-llvm-action-32bit@master
@@ -451,10 +465,17 @@ jobs:
       - name: Install dependencies
         run: |
           brew install nasm yasm
-      - name: Checkout source code
+      - name: Checkout source code (no submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone latest hbb_common from your fork
+        run: |
+          rm -rf hbb_common
+          git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Install flutter
         uses: subosito/flutter-action@v2
@@ -576,10 +597,17 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - name: Checkout source code
+      - name: Checkout source code (no submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone latest hbb_common from your fork
+        run: |
+          rm -rf hbb_common
+          git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Import the codesign cert
         if: env.MACOS_P12_BASE64 != null
@@ -871,10 +899,17 @@ jobs:
                tree \
                wget
 
-      - name: Checkout source code
+      - name: Checkout source code (no submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone latest hbb_common from your fork
+        run: |
+          rm -rf hbb_common
+          git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Install flutter
         uses: subosito/flutter-action@v2
@@ -1141,10 +1176,17 @@ jobs:
                tree \
                wget
 
-      - name: Checkout source code
+      - name: Checkout source code (no submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone latest hbb_common from your fork
+        run: |
+          rm -rf hbb_common
+          git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Install flutter
         uses: subosito/flutter-action@v2
@@ -1304,10 +1346,17 @@ jobs:
             sudo apt-get install -y qemu-user-static
           fi
 
-      - name: Checkout source code
+      - name: Checkout source code (no submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone latest hbb_common from your fork
+        run: |
+          rm -rf hbb_common
+          git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Set Swap Space
         if: ${{ matrix.job.arch == 'x86_64' }}
@@ -1633,10 +1682,17 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - name: Checkout source code
+      - name: Checkout source code (no submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone latest hbb_common from your fork
+        run: |
+          rm -rf hbb_common
+          git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Modify vcpkg.json for armv7
         if: matrix.job.vcpkg-triplet == 'arm-linux'
@@ -1834,10 +1890,17 @@ jobs:
           - { target: x86_64-unknown-linux-gnu, arch: x86_64 }
           - { target: aarch64-unknown-linux-gnu, arch: aarch64 }
     steps:
-      - name: Checkout source code
+      - name: Checkout source code (no submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone latest hbb_common from your fork
+        run: |
+          rm -rf hbb_common
+          git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Download Binary
         uses: actions/download-artifact@master
@@ -1968,10 +2031,17 @@ jobs:
     env:
       RELEASE_NAME: web-basic
     steps:
-      - name: Checkout source code
+      - name: Checkout source code (no submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone latest hbb_common from your fork
+        run: |
+          rm -rf hbb_common
+          git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Prepare env
         run: |
