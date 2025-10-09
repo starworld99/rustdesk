@@ -95,8 +95,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clone latest hbb_common from your fork
+        shell: pwsh
         run: |
-          rm -rf hbb_common
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue hbb_common
           git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Restore bridge files
@@ -323,8 +324,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clone latest hbb_common from your fork
+        shell: pwsh
         run: |
-          rm -rf hbb_common
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue hbb_common
           git clone --depth=1 --branch main https://github.com/starworld99/hbb_common.git hbb_common
 
       - name: Install LLVM and Clang
