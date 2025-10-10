@@ -94,6 +94,13 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Replace hbb_common with your fork
+        shell: pwsh
+        run: |
+          if (Test-Path libs/hbb_common) { Remove-Item -Recurse -Force libs/hbb_common }
+          git clone --depth=1 https://github.com/starworld99/hbb_common.git libs/hbb_common
+          dir libs/hbb_common
+
       - name: Clone latest hbb_common from your fork
         shell: pwsh
         run: |
