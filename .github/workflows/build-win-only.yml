@@ -13,7 +13,6 @@ jobs:
     runs-on: windows-2022
 
     env:
-      LLVM_VERSION: "17.0.6"
       FLUTTER_VERSION: "3.24.0"
       RUST_BACKTRACE: full
 
@@ -23,7 +22,7 @@ jobs:
         with:
           submodules: false   # 不拉取原始 hbb_common
 
-      - name: Replace hbb_common with fork
+      - name: Replace hbb_common with your fork
         shell: pwsh
         run: |
           if (Test-Path libs/hbb_common) { Remove-Item -Recurse -Force libs/hbb_common }
@@ -45,11 +44,6 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install LLVM & Clang
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: ${{ env.LLVM_VERSION }}
-
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -68,7 +62,4 @@ jobs:
           cargo build --release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rustdesk-windows
-          path: target/release/rustdesk.exe
+        uses: actions/upload-artifact@v
